@@ -2,8 +2,6 @@
 
 > Beautiful analytics for any GitHub profile.
 
-Live demo → _coming soon (Vercel)_
-
 ## What it does
 - Contribution heatmap (last 365 days)
 - Language breakdown by bytes written
