@@ -1,12 +1,20 @@
-const BASE = "https://api.github.com";
+const cache = new Map();
 
-const TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
+async function fetchGH(path) {
+  if (cache.has(path)) return cache.get(path);
 
-const HEADERS = {
-  Accept: "application/vnd.github+json",
-  ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
-};
+  const res = await fetch(`/api/github?path=${encodeURIComponent(path)}`);
 
+  if (res.status === 404) throw new Error("User not found");
+  if (res.status === 403 || res.status === 429) {
+    throw new Error("GitHub rate limit hit. Try again in a bit.");
+  }
+  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
+
+  const data = await res.json();
+  cache.set(path, data);
+  return data;
+}
 // ─── Cache ────────────────────────────────────────────────────────────────────
 // A simple Map that stores results so we don't hit the API twice for the
 // same data. Think of it like a notepad — check the notepad first, only
