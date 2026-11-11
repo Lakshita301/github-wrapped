@@ -1,0 +1,80 @@
+.top-repos {
+  margin-top: 1.5rem;
+  padding: 1.5rem 2rem;
+  background: #111118;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 24px;
+  font-family: "DM Mono", monospace;
+}
+
+.top-repos__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.top-repos__title {
+  font-family: "Syne", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #f0f0f8;
+}
+
+.top-repos__sub {
+  font-size: 0.78rem;
+  color: #8888aa;
+}
+
+.top-repos__list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.top-repos__row {
+  display: flex;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 14px;
+  text-decoration: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.top-repos__row:hover {
+  border-color: #e8ff6b;
+  background: rgba(232, 255, 107, 0.06);
+}
+
+.top-repos__rank {
+  font-family: "Syne", sans-serif;
+  font-weight: 800;
+  color: #44445a;
+  width: 1.5rem;
+}
+
+.top-repos__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.top-repos__name {
+  color: #e8ff6b;
+  font-weight: 500;
+}
+
+.top-repos__desc {
+  color: #8888aa;
+  font-size: 0.8rem;
+}
+
+.top-repos__meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.75rem;
+  color: #8888aa;
+}

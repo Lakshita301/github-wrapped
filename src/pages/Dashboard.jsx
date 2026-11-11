@@ -9,6 +9,7 @@ import ProfileHeader from "../components/ProfileHeader";
 import ContributionHeatmap from "../components/ContributionHeatmap";
 import LanguageChart from "../components/LanguageChart";
 import InsightsPanel from "../components/InsightsPanel";
+import TopRepos from "../components/TopRepos";
 
 export default function Dashboard() {
   const { username } = useParams();
@@ -25,6 +26,7 @@ export default function Dashboard() {
       />
       <ContributionHeatmap data={buildHeatmapData(data.events)} />
       <LanguageChart data={buildLanguageData(data.languages)} />
+      <TopRepos repos={data.repos} />
     </div>
   );
 }
