@@ -1,7 +1,10 @@
 const BASE = "https://api.github.com";
 
+const TOKEN = import.meta.env.VITE_GITHUB_TOKEN;
+
 const HEADERS = {
   Accept: "application/vnd.github+json",
+  ...(TOKEN ? { Authorization: `Bearer ${TOKEN}` } : {}),
 };
 
 // ─── Cache ────────────────────────────────────────────────────────────────────
