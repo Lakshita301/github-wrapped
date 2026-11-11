@@ -20,37 +20,58 @@
 
 | Area    | Tools                                                    |
 | ------- | -------------------------------------------------------- |
-| UI      | React 19, Vite                                           |
+| UI      | React, Vite                                              |
 | Routing | React Router                                             |
 | Data    | GitHub REST API                                          |
+| Backend | Vercel serverless function (API proxy)                   |
 | Styling | Plain CSS (custom properties, grid, keyframe animations) |
 | Hosting | Vercel (auto-deploys on every push to `main`)            |
 
-## How it works
+## Architecture
 
 ```
-Home (search) → /dashboard/:username → useGitHubData(username)
-                                            │
-                                            ▼
-                                   api/github.js (fetch + cache)
-                                            │
-                                            ▼
-                               utils/dataHelpers.js (reshape data)
-                                            │
-                                            ▼
-              ProfileHeader · InsightsPanel · ContributionHeatmap · LanguageChart · TopRepos
+Browser
+  │
+  │  Home (search) → /dashboard/:username
+  │
+  ▼
+useGitHubData(username)          custom hook: loading / error / success state
+  │
+  ▼
+src/api/github.js                client cache + error handling
+  │
+  │  GET /api/github?path=/users/...
+  ▼
+api/github.js                    Vercel serverless function (server-side)
+  │   • endpoint allowlist
+  │   • adds GITHUB_TOKEN
+  │   • edge caching (s-maxage=300)
+  ▼
+GitHub REST API
+  │
+  ▼
+utils/dataHelpers.js             reshape data for the UI
+  │
+  ▼
+ProfileHeader · InsightsPanel · ContributionHeatmap · LanguageChart · TopRepos
 ```
 
-- **`api/github.js`** is the only file that calls `fetch`. It handles errors (404, rate limit) and keeps an in-memory cache so repeated lookups don't spend extra API requests.
-- **`hooks/useGitHubData.js`** is a custom hook that tracks `loading`, `error`, and `success` state. It ignores stale responses, so a slow earlier search can't overwrite a newer one.
-- **`utils/dataHelpers.js`** holds pure functions that turn raw API data into chart-ready shapes (heatmap days, language percentages, summary stats).
-- Language data is fetched with `Promise.all`, so per-repo requests run in parallel rather than one after another.
+### Design decisions
+
+- **Serverless proxy.** The browser never talks to GitHub directly. It calls `/api/github`, and a Vercel function adds the access token server-side, so no credential is shipped in the client bundle.
+- **Endpoint allowlist.** The proxy only forwards four known GitHub paths (user, repos, public events, repo languages) and checks the resolved origin, so it can't be used as an open relay.
+- **Two cache layers.** Responses are cached at Vercel's edge for 5 minutes (`s-maxage=300`, shared across all visitors, with `stale-while-revalidate`), and again in an in-memory `Map` on the client for repeat lookups within a session.
+- **Custom hook with stale-response protection.** `useGitHubData` ignores results from outdated requests, so a slow earlier search can't overwrite a newer one.
+- **Parallel requests.** Per-repo language data is fetched with `Promise.all` instead of one request after another.
+- **Pure data helpers.** `utils/dataHelpers.js` contains side-effect-free functions that turn raw API data into chart-ready shapes, which keeps components simple and makes the logic easy to test.
 
 ## Project structure
 
 ```
+api/
+└── github.js       Serverless proxy (runs on Vercel, not in the browser)
 src/
-├── api/            GitHub API calls and caching
+├── api/            Client-side fetching and caching
 ├── components/     ProfileHeader, InsightsPanel, ContributionHeatmap,
 │                   LanguageChart, TopRepos, StatusScreen
 ├── hooks/          useGitHubData
@@ -64,10 +85,18 @@ src/
 git clone https://github.com/Lakshita301/github-wrapped.git
 cd github-wrapped
 npm install
-npm run dev
 ```
 
-The app runs at `http://localhost:5173`.
+The data requests go through the serverless function in `api/`, which `npm run dev` does not run. Use the Vercel CLI instead:
+
+```bash
+npm i -g vercel
+vercel login
+vercel link
+vercel dev
+```
+
+Then open the local URL it prints (usually `http://localhost:3000`).
 
 ### Optional: add a GitHub token
 
@@ -77,34 +106,44 @@ Without a token, GitHub allows 60 API requests per hour. With one, the limit is 
 2. Create a `.env` file in the project root:
 
 ```
-VITE_GITHUB_TOKEN=your_token_here
+GITHUB_TOKEN=your_token_here
 ```
 
-3. Restart the dev server.
+3. Restart `vercel dev`.
+
+The token has no `VITE_` prefix on purpose. Vite exposes `VITE_` variables to the browser, while `GITHUB_TOKEN` is only readable by the serverless function.
 
 ## Deployment
 
-Deployed on Vercel. Two things are needed for it to work:
+Deployed on Vercel with automatic deploys from `main`. Setup needs:
 
-- A `vercel.json` rewrite so client-side routes like `/dashboard/torvalds` don't 404 on refresh
-- A `VITE_GITHUB_TOKEN` environment variable set in the Vercel project settings
+- A `GITHUB_TOKEN` environment variable in the Vercel project settings (Production and Preview)
+- A `vercel.json` rewrite so client-side routes like `/dashboard/torvalds` don't 404 on refresh, while leaving `/api/*` alone:
+
+```json
+{
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }]
+}
+```
 
 ## Known limitations
 
 - **90-day window.** GitHub's public events API only returns roughly the last 90 days of activity, so the heatmap and streak cover that period rather than a full year.
 - **Pushes, not commits.** Insights count push events, because the events API doesn't reliably include individual commits.
 - **Peak hour uses the viewer's timezone**, not the profile owner's.
-- **Token visibility.** `VITE_` variables are bundled into the client code. The token has no scopes and can only read public data, but a server-side proxy would be the proper fix.
+- **One request per repo for languages.** Profiles with very many repos use many API calls per lookup.
 - Languages are measured per repository by bytes, so very small shares can round to 0%.
 
 ## Roadmap
 
-- [ ] Serverless proxy to keep the token server-side
+- [x] Serverless proxy to keep the token server-side
+- [x] Edge caching shared across visitors
+- [ ] Unit tests (Vitest) and a GitHub Actions CI pipeline
 - [ ] Full-year contribution graph using the GitHub GraphQL API
-- [ ] Shareable PNG card
+- [ ] Limit language lookups to the most recently active repos
 - [ ] Compare two profiles side by side
-- [ ] Limit language lookups to the most active repos for large profiles
+- [ ] Shareable PNG card
 
 ## Author
 
-Built by [Lakshita](https://github.com/Lakshita301) while learning React, hooks, REST APIs, and CI/CD.
+Built by [Lakshita](https://github.com/Lakshita301) while learning React, hooks, REST APIs, serverless functions, and CI/CD.
