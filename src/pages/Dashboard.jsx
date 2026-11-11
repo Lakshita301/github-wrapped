@@ -1,6 +1,8 @@
 import { useParams } from "react-router-dom";
 import { useGitHubData } from "../hooks/useGitHubData";
+import { buildHeatmapData } from "../utils/dataHelpers";
 import ProfileHeader from "../components/ProfileHeader";
+import ContributionHeatmap from "../components/ContributionHeatmap";
 
 export default function Dashboard() {
   const { username } = useParams();
@@ -12,6 +14,7 @@ export default function Dashboard() {
   return (
     <div style={{ maxWidth: 900, margin: "0 auto", padding: "2rem 1rem" }}>
       <ProfileHeader user={data.user} />
+      <ContributionHeatmap data={buildHeatmapData(data.events)} />
     </div>
   );
 }
