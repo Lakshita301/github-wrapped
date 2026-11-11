@@ -15,27 +15,6 @@ async function fetchGH(path) {
   cache.set(path, data);
   return data;
 }
-// ─── Cache ────────────────────────────────────────────────────────────────────
-// A simple Map that stores results so we don't hit the API twice for the
-// same data. Think of it like a notepad — check the notepad first, only
-// call the API if the answer isn't written down yet.
-const cache = new Map();
-
-async function fetchGH(path) {
-  if (cache.has(path)) return cache.get(path);
-
-  const res = await fetch(`${BASE}${path}`, { headers: HEADERS });
-
-  if (res.status === 404) throw new Error("User not found");
-  if (res.status === 403) throw new Error("Rate limit hit — add a GitHub token in .env");
-  if (!res.ok) throw new Error(`GitHub API error: ${res.status}`);
-
-  const data = await res.json();
-  cache.set(path, data);
-  return data;
-}
-
-// ─── Exported functions ───────────────────────────────────────────────────────
 
 export async function fetchUser(username) {
   return fetchGH(`/users/${username}`);
