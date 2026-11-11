@@ -1,5 +1,7 @@
 # GitHub Wrapped
 
+![CI](https://github.com/Lakshita301/github-wrapped/actions/workflows/ci.yml/badge.svg)
+
 > Beautiful analytics for any public GitHub profile. Type a username, get a dashboard.
 
 **[Live demo →](https://github-wrapped-delta-pearl.vercel.app/)**
@@ -24,6 +26,8 @@
 | Routing | React Router                                             |
 | Data    | GitHub REST API                                          |
 | Backend | Vercel serverless function (API proxy)                   |
+| Testing | Vitest                                                   |
+| CI      | GitHub Actions (lint, test, build)                       |
 | Styling | Plain CSS (custom properties, grid, keyframe animations) |
 | Hosting | Vercel (auto-deploys on every push to `main`)            |
 
@@ -65,9 +69,22 @@ ProfileHeader · InsightsPanel · ContributionHeatmap · LanguageChart · TopRep
 - **Parallel requests.** Per-repo language data is fetched with `Promise.all` instead of one request after another.
 - **Pure data helpers.** `utils/dataHelpers.js` contains side-effect-free functions that turn raw API data into chart-ready shapes, which keeps components simple and makes the logic easy to test.
 
+## Testing and CI
+
+```bash
+npm test
+```
+
+- **Unit tests** cover the data helpers: heatmap day-filling, language percentages, and insight calculations including streaks and fork filtering. Time is frozen in tests so results don't depend on the day they run.
+- **Proxy tests** verify the security rules: requests with no path, off-allowlist paths, and host-redirect attempts are rejected; allowed paths are forwarded with the server-side token; error responses are not cached; upstream failures return 502. `fetch` is mocked, so tests never call GitHub.
+- **GitHub Actions** runs lint, tests, and a production build on every push to `main` and on pull requests.
+
 ## Project structure
 
 ```
+.github/
+└── workflows/
+    └── ci.yml      Lint, test, and build on every push
 api/
 └── github.js       Serverless proxy (runs on Vercel, not in the browser)
 src/
@@ -76,7 +93,9 @@ src/
 │                   LanguageChart, TopRepos, StatusScreen
 ├── hooks/          useGitHubData
 ├── pages/          Home, Dashboard
-└── utils/          dataHelpers
+└── utils/          dataHelpers (with unit tests alongside)
+tests/
+└── proxy.test.js   Tests for the serverless proxy
 ```
 
 ## Run locally
@@ -138,7 +157,7 @@ Deployed on Vercel with automatic deploys from `main`. Setup needs:
 
 - [x] Serverless proxy to keep the token server-side
 - [x] Edge caching shared across visitors
-- [ ] Unit tests (Vitest) and a GitHub Actions CI pipeline
+- [x] Unit tests (Vitest) and a GitHub Actions CI pipeline
 - [ ] Full-year contribution graph using the GitHub GraphQL API
 - [ ] Limit language lookups to the most recently active repos
 - [ ] Compare two profiles side by side
